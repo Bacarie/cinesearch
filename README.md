@@ -57,7 +57,7 @@ python -m src.indexer
 
 Le projet propose **trois** façons d'interagir avec les données :
 
-### Option A : Interface Analytique (Streamlit) 
+### Option A : Interface Streamlit 
 Une interface complète pour la recherche et l'exploration visuelle des données (graphiques interactifs Plotly).
 ```bash
 streamlit run src/app.py
@@ -94,7 +94,7 @@ Si vous souhaitez explorer les données manuellement ou créer des tableaux de b
 
 ---
 
-## 🏗️ Architecture et Rôle des Fichiers
+## 🏗️ Architecture et rôle des fichiers
 
 Voici le détail de l'architecture du code et le rôle de chaque composant principal :
 
@@ -151,16 +151,16 @@ Voici un aperçu des différentes interfaces réalisées pour ce projet.
 ### 1. Interface Streamlit
 Le tableau de bord Streamlit utilise la puissance d'Elasticsearch à travers différents onglets et requêtes complexes :
 
-*   **Recherche Globale (`multi_match`)** : Cherche simultanément dans les titres, synopsis, acteurs et réalisateurs avec des pondérations différentes.
+*   **Recherche globale (`multi_match`)** : Cherche simultanément dans les titres, synopsis, acteurs et réalisateurs avec des pondérations différentes.
 
 ![Recherche globale](screenshots/interface_streamlit/streamlit_search_1.png)
 
-*   **Recherche sur l'Intrigue (`match` avec `highlight`)** : Effectue une recherche Full-Text dans le résumé du film et surligne les mots correspondants.
+*   **Recherche sur l'intrigue (`match` avec `highlight`)** : Effectue une recherche Full-Text dans le résumé du film et surligne les mots correspondants.
 
 ![Recherche intrigue](screenshots/interface_streamlit/streamlit_search_4.png)
 
-*   **Recherche Tolérante (`match` avec `fuzziness`)** : Permet de trouver des films même avec des fautes de frappe (ex: taper "Batmna" renvoie "Batman").
-*   **Recherche Avancée (`bool query`)** : Combine des filtres d'exclusion et d'inclusion stricts (`filter` pour la durée ou les années, `must` pour le texte).
+*   **Recherche tolérante (`match` avec `fuzziness`)** : Permet de trouver des films même avec des fautes de frappe (ex: taper "Batmna" renvoie "Batman").
+*   **Recherche avancée (`bool query`)** : Combine des filtres d'exclusion et d'inclusion stricts (`filter` pour la durée ou les années, `must` pour le texte).
 
 ![Recherche avancée](screenshots/interface_streamlit/streamlit_search_2.png)
 
@@ -168,19 +168,31 @@ Le tableau de bord Streamlit utilise la puissance d'Elasticsearch à travers dif
 
 ![Recommandations](screenshots/interface_streamlit/streamlit_search_5.png)
 
-*   **Statistiques Globales (Agrégations)** : Un onglet dédié permet de visualiser les indicateurs clés du dataset grâce aux agrégations d'Elasticsearch (`avg`, `min`, `max`, `terms`, `histogram`). On y retrouve la note moyenne, la durée moyenne, la répartition par décennie ou encore les genres les plus populaires sous forme de graphiques Plotly interactifs.
+*   **Statistiques globales** : Un onglet dédié permet de visualiser les indicateurs clés du dataset grâce aux agrégations d'Elasticsearch (`avg`, `min`, `max`, `terms`, `histogram`). On y retrouve la note moyenne, la durée moyenne, la répartition par décennie ou encore les genres les plus populaires sous forme de graphiques Plotly interactifs.
 
 ![Statistiques Streamlit](screenshots/interface_streamlit/streamlit_stats_1.png)
+![Statistiques Streamlit](screenshots/interface_streamlit/streamlit_stats_2.png)
+![Statistiques Streamlit](screenshots/interface_streamlit/streamlit_stats_3.png)
+![Statistiques Streamlit](screenshots/interface_streamlit/streamlit_stats_4.png)
 
-### 2. Application Web (React-like / Vanilla JS)
+### 2. Application web (React-like / Vanilla JS)
 Une single page application entièrement customisée (Dark Mode, Glassmorphism) communiquant de manière asynchrone avec le backend FastAPI.
 
-*   **Recherche Rapide** : Moteur de recherche global ultra-réactif sans rechargement de page.
-*   **Pages Détaillées** : Fiches de films immersives avec affiches grand format, métadonnées complètes et films similaires.
-*   **Navigation Croisée** : Tags cliquables permettant d'explorer dynamiquement toute la filmographie des acteurs et réalisateurs.
-*   **Indicateurs Statistiques** : Un panneau de statistiques affiche instantanément les métriques calculées en direct par Elasticsearch (Total de films, Moyennes globales, Films extrêmes).
+*   **Recherche rapide** : Moteur de recherche global ultra-réactif sans rechargement de page.
 
-![Vue Web App](screenshots/interface_react/react_1.png)
+![Vue Web App](screenshots/interface_react/react_2.png)
+
+*   **Pages détaillées** : Fiches de films immersives avec affiches grand format, métadonnées complètes et films similaires.
+
+![Vue Web App](screenshots/interface_react/react_3.png)
+
+*   **Navigation croisée** : Tags cliquables permettant d'explorer dynamiquement toute la filmographie des acteurs et réalisateurs.
+
+![Vue Web App](screenshots/interface_react/react_4.png)
+
+*   **Indicateurs statistiques** : Un panneau de statistiques affiche instantanément les métriques calculées en direct par Elasticsearch (Total de films, Moyennes globales, Films extrêmes).
+![Vue Web App](screenshots/interface_react/react_5.png)
+
 
 ### 3. Tableau de bord Kibana
 Exploration visuelle des données et des KPI principaux du dataset via des agrégations avancées (Histogrammes, Treemap, Moyennes).
