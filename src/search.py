@@ -1,3 +1,11 @@
+def get_movie_by_id(es_client, doc_id, index_name="movies"):
+    """Récupère un film spécifique par son ID Elasticsearch."""
+    try:
+        result = es_client.get(index=index_name, id=doc_id)
+        return result
+    except Exception as e:
+        return None
+
 def search_by_title(es_client, query_text, index_name="movies"):
     """3.1 Recherche simple par titre (match query)"""
     print(f"\n--- Recherche simple : '{query_text}' ---")
@@ -209,7 +217,7 @@ def search_exact_quote(es_client, quote, index_name="movies"):
         }
     }
     
-    results = es_client.search(index=index_name, query=query, size=10)
+    results = es_client.search(index=index_name, query=query, size=10, sort=[{"rating": "desc"}])
     for hit in results["hits"]["hits"]:
         print(f"🎬 {hit['_source']['title']}")
         
@@ -232,7 +240,7 @@ def search_by_duration(es_client, min_duration_secs=None, max_duration_secs=None
         }
     }
     
-    results = es_client.search(index=index_name, query=query, size=20, sort=[{"running_time_secs": "asc"}])
+    results = es_client.search(index=index_name, query=query, size=20, sort=[{"rating": "desc"}])
     
     for hit in results["hits"]["hits"]:
         movie = hit["_source"]

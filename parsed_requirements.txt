@@ -1,0 +1,707 @@
+Projet Elasticsearch
+____________________________________________________________
+CinéSearch
+Moteur de Recherche de Films
+avec Elasticsearch et Python
+____________________________________________________________
+CY-Tech Cergy
+Année universitaire 2025-2026
+À rendre pour : [date à définir par l'enseignant]
+Travail en binôme ou trinôme
+Table des matières
+1. Contexte et Objectifs
+2. Prérequis Techniques
+3. Architecture du Projet
+4. Travail Demandé — Détail des Livrables
+    4.1  Partie 1 : Infrastructure (15 points)
+    4.2  Partie 2 : Indexation des Données (15 points)
+    4.3  Partie 3 : Recherche (30 points)
+    4.4  Partie 4 : Agrégations et Statistiques (20 points)
+    4.5  Partie 5 : Interface CLI (10 points)
+    4.6  Partie 6 : Visualisation Kibana (10 points)
+5. Barème Récapitulatif
+6. Bonus (jusqu'à 10 points supplémentaires)
+7. Modalités de Rendu
+8. Critères d'Évaluation
+9. Conseils et Indices
+Annexe : Extrait du Dataset
+1. Contexte et Objectifs
+Contexte
+Vous êtes développeur dans une startup spécialisée dans le divertissement numérique. L'entreprise souhaite créer un service de recommandation et de recherche de films pour ses utilisateurs. Elle dispose d'un dataset de près de 5 000 films contenant des informations riches : titre, réalisateurs, acteurs, genres, synopsis, note, date de sortie, durée, etc.
+Votre mission est de construire un moteur de recherche performant exploitant Elasticsearch comme backend de recherche, avec une interface en ligne de commande développée en Python. Le tout sera déployé via Docker pour garantir la portabilité et la reproductibilité de l'environnement.
+Objectifs pédagogiques
+À l'issue de ce projet, vous serez capables de :
+Déployer une stack Elasticsearch + Kibana avec Docker Compose
+Concevoir un mapping Elasticsearch adapté à un jeu de données réel
+Indexer un volume conséquent de données via l'API bulk de Python
+Écrire des requêtes de recherche variées avec le Query DSL (match, bool, fuzzy, prefix...)
+Exploiter les agrégations Elasticsearch pour produire des statistiques avancées
+Construire un dashboard Kibana interactif pour la visualisation de données
+Développer une interface CLI Python ergonomique et robuste
+Compétences évaluées
+Compétence
+Détail
+Docker & Docker Compose
+Déploiement d'infrastructure conteneurisée
+Elasticsearch
+Mapping, indexation, recherche, agrégations
+Python
+Scripting, bibliothèque elasticsearch-py, gestion d'erreurs
+Query DSL
+Construction de requêtes complexes
+Kibana
+Visualisation de données, création de dashboards
+2. Prérequis Techniques
+Avant de commencer le projet, assurez-vous d'avoir les outils suivants installés et fonctionnels sur votre machine :
+Docker Desktop installé et fonctionnel (version 4.x ou supérieure)
+Python 3.10+ avec pip à jour
+Un éditeur de code (VS Code recommandé, avec l'extension Python)
+Git pour le versioning du code
+Docker
+Docker est indispensable pour ce projet car il permet de déployer facilement Elasticsearch et Kibana sans installation locale complexe. Grâce à Docker Compose, vous pouvez lancer l'ensemble de l'infrastructure en une seule commande.
+Pour une explication détaillée de Docker et de son fonctionnement, référez-vous au document de cours (Cours Complet Elasticsearch) qui contient une section dédiée à la conteneurisation et à Docker.
+Alternative si vous ne pouvez pas installer Docker : Si vous rencontrez des difficultés pour installer Docker sur votre machine (restrictions administrateur, espace disque insuffisant, compatibilité matérielle...), vous pouvez utiliser Docker Play (labs.play-with-docker.com). Cette plateforme en ligne gratuite vous fournit un environnement Docker temporaire (4 heures par session) directement dans votre navigateur, sans rien installer sur votre ordinateur. Vous pourrez y exécuter vos conteneurs Elasticsearch et Kibana normalement.
+Installation des dépendances Python
+Terminal
+pip install elasticsearch
+Ou via un fichier requirements.txt :
+requirements.txt
+elasticsearch>=8.0.0
+tabulate
+Fichiers fournis
+Les fichiers suivants vous sont fournis par l'enseignant :
+Fichier
+Description
+movies_cleaned_v2.json
+Dataset de ~5 000 films au format JSON (bulk-compatible)
+docker-compose.yml
+À écrire par vos soins (voir Partie 1.1)
+Important : Le dataset est au format bulk Elasticsearch (lignes alternées : métadonnées d'index / document). Votre script d'indexation doit en tenir compte lors du parsing.
+3. Architecture du Projet
+Votre projet doit suivre l'arborescence suivante :
+Arborescence du projet
+cinesearch/
+├── docker-compose.yml          # Infrastructure ES + Kibana
+├── data/
+│   └── movies_cleaned_v2.json  # Dataset
+├── src/
+│   ├── config.py               # Configuration (URL ES, index name)
+│   ├── indexer.py               # Chargement et indexation des données
+│   ├── search.py                # Fonctions de recherche
+│   ├── analytics.py             # Agrégations et statistiques
+│   └── main.py                  # Interface CLI principale
+├── requirements.txt
+└── README.md
+Description des fichiers
+Fichier
+Rôle
+docker-compose.yml
+Définit les services Elasticsearch et Kibana avec leurs configurations
+config.py
+Centralise les paramètres : URL du cluster, nom de l'index, timeouts, etc.
+indexer.py
+Parse le dataset JSON et effectue l'indexation bulk dans Elasticsearch
+search.py
+Contient toutes les fonctions de recherche (simple, avancée, fuzzy, suggestions)
+analytics.py
+Implémente les agrégations pour les statistiques et analyses
+main.py
+Point d'entrée : menu CLI interactif qui orchestre tous les modules
+4. Travail Demandé — Détail des Livrables
+Partie 1 : Infrastructure (15 points)
+1.1 Docker Compose (5 pts)
+Écrire un fichier docker-compose.yml fonctionnel permettant de déployer un cluster Elasticsearch 8.x avec Kibana.
+Exigences :
+Elasticsearch doit être accessible sur localhost:9200
+Kibana doit être accessible sur localhost:5601
+La sécurité (xpack.security) peut être désactivée pour simplifier le développement
+Le fichier doit être autonome (pas de dépendance externe)
+Documenter les commandes pour lancer et arrêter la stack
+Commandes attendues :
+Terminal
+# Lancer la stack
+docker compose up -d
+# Vérifier que ES est prêt
+curl http://localhost:9200
+# Arrêter la stack
+docker compose down
+# Arrêter et supprimer les volumes
+docker compose down -v
+Important : Après `docker compose up -d`, Elasticsearch prend environ 30 à 60 secondes pour démarrer complètement. Attendez avant de lancer votre script Python. Vous pouvez vérifier que le service est prêt avec : `curl http://localhost:9200` — si vous obtenez une réponse JSON, c'est bon !
+Exemple de code Python pour attendre qu'Elasticsearch soit prêt :
+Python — attente du démarrage d'Elasticsearch
+import time
+from elasticsearch import Elasticsearch
+es = Elasticsearch("http://localhost:9200")
+# Attendre qu'Elasticsearch soit prêt
+for i in range(30):
+    try:
+        es.info()
+        print("Elasticsearch est prêt !")
+        break
+    except Exception:
+        print(f"En attente d'Elasticsearch... ({i+1}/30)")
+        time.sleep(2)
+1.2 Création du Mapping (10 pts)
+Créer un mapping explicite pour l'index "movies" avec les types appropriés. Le mapping doit être créé programmatiquement via Python (pas via Kibana Dev Tools).
+Voici le mapping attendu :
+Champ
+Type
+Remarque
+title
+text
+Avec analyzer standard (les titres sont en anglais)
+directors
+text + keyword
+Multi-field : recherche full-text ET agrégations
+actors
+text + keyword
+Multi-field : recherche full-text ET agrégations
+genres
+keyword
+Valeurs exactes pour le filtrage et les agrégations
+year
+integer
+Année de sortie du film
+rating
+float
+Note du film (ex: 8.8)
+rank
+integer
+Classement du film dans le dataset
+release_date
+date
+Date de sortie au format ISO 8601
+plot
+text
+Synopsis — avec analyzer anglais
+running_time_secs
+integer
+Durée du film en secondes
+image_url
+keyword
+URL de l'affiche (non analysé)
+Exemple de code pour créer le mapping :
+Python — config.py ou indexer.py
+from elasticsearch import Elasticsearch
+es = Elasticsearch("http://localhost:9200")
+mappings = {
+    "properties": {
+        "title": {
+            "type": "text",
+            "analyzer": "standard"
+        },
+        "directors": {
+            "type": "text",
+            "fields": {
+                "keyword": {
+                    "type": "keyword"
+                }
+            }
+        },
+        # ... continuer pour tous les champs
+    }
+}
+es.indices.create(index="movies", mappings=mappings)
+Partie 2 : Indexation des Données (15 points)
+2.1 Script d'indexation (10 pts)
+Écrire un script Python (indexer.py) qui charge le fichier movies_cleaned_v2.json et indexe tous les documents dans Elasticsearch.
+Exigences :
+Parser correctement le fichier JSON au format bulk (lignes alternées : métadonnées / document)
+Utiliser le bulk indexing via helpers.bulk pour des performances optimales
+Afficher une barre de progression ou un compteur pendant l'indexation
+Gérer les erreurs d'indexation (documents malformés, connexion perdue...)
+Afficher un résumé à la fin : nombre de documents indexés avec succès, nombre d'erreurs, temps total d'exécution
+Important : Le dataset fourni est au format bulk Elasticsearch. Chaque document est précédé d'une ligne de métadonnées d'index. Les données du film sont dans le champ "fields" de chaque document. Votre script doit extraire correctement ces données.
+Structure d'un document dans le fichier :
+Format du fichier JSON
+// Ligne 1 : métadonnées (à ignorer ou utiliser pour l'ID)
+{"index":{"_index": "movies","_type":"movie","_id":1}}
+// Ligne 2 : document (les données sont dans "fields")
+{"fields": {"title": "Don Jon", "rating": 7.4, ...}, "id": "tt2229499", "type": "add"}
+Note : Le champ `_type` est un vestige des anciennes versions d'Elasticsearch (< 7.x). Il est ignoré dans ES 8.x. Votre code d'indexation doit ignorer ce champ lors du parsing.
+Exemple de code d'indexation bulk :
+Python — indexer.py (extrait)
+from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
+import json
+import time
+def index_movies(es, filename, index_name="movies"):
+    start = time.time()
+    actions = []
+    
+    with open(filename, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    for i in range(1, len(lines), 2):
+        doc = json.loads(lines[i].strip())
+        movie = doc["fields"]
+        actions.append({
+            "_index": index_name,
+            "_source": movie
+        })
+    
+    try:
+        success, errors = bulk(es, actions, raise_on_error=False)
+        print(f"{success} films indexés avec succès")
+        if errors:
+            print(f"{len(errors)} erreurs rencontrées")
+    except Exception as e:
+        print(f"Erreur lors de l'indexation : {e}")
+    
+    elapsed = time.time() - start
+    print(f"Temps total: {elapsed:.2f}s")
+2.2 Vérification (5 pts)
+Après l'indexation, votre script doit effectuer les vérifications suivantes :
+Vérifier le nombre de documents dans l'index (doit correspondre au nombre attendu)
+Afficher un échantillon de 3 documents pour vérification visuelle
+Vérifier que le mapping appliqué est correct en interrogeant l'API _mapping
+Python — vérification
+# Vérifier le nombre de documents
+count = es.count(index="movies")["count"]
+print(f"Nombre de documents indexés: {count}")
+# Afficher un échantillon
+result = es.search(index="movies", size=3)
+for hit in result["hits"]["hits"]:
+    print(hit["_source"]["title"], "-", hit["_source"]["rating"])
+Partie 3 : Recherche (30 points)
+Implémenter les fonctions de recherche suivantes dans le fichier search.py. Chaque fonction doit retourner les résultats de manière structurée et les afficher de façon lisible.
+3.1 Recherche simple par titre (5 pts)
+Fonction : search_by_title(query)
+Effectuer une recherche par titre en utilisant une match query.
+Affichage attendu pour chaque résultat :
+Titre du film
+Année de sortie
+Note
+Réalisateur(s)
+Score de pertinence Elasticsearch
+Python — search.py
+def search_by_title(es, query, index="movies"):
+    """Recherche des films par titre (match query)."""
+    query = {
+        # TODO: Construisez votre requête match ici
+        # Indice: utilisez {"match": {"champ": "valeur"}}
+    }
+    results = es.search(index=index, query=query, size=10)
+    
+    # TODO: Parcourez results['hits']['hits'] et affichez les résultats
+    # Chaque hit contient hit['_source'] avec les données du film
+    pass
+3.2 Recherche avancée multi-critères (10 pts)
+Fonction : search_advanced(title, actor, director, genre, min_rating, max_rating, year_from, year_to)
+Implémenter une recherche multi-critères utilisant une bool query. Tous les paramètres sont optionnels (valeur par défaut None). La requête doit se construire dynamiquement en fonction des paramètres fournis.
+Construction de la requête :
+title : clause must avec match query
+actor : clause must avec match sur le champ actors
+director : clause must avec match sur le champ directors
+genre : clause filter avec term query sur genres
+min_rating / max_rating : clause filter avec range query sur rating
+year_from / year_to : clause filter avec range query sur year
+Python — search.py (extrait)
+def search_advanced(es, title=None, actor=None, director=None,
+                    genre=None, min_rating=None, max_rating=None,
+                    year_from=None, year_to=None, index="movies"):
+    must = []
+    filters = []
+    
+    if title:
+        must.append({"match": {"title": title}})
+    if actor:
+        must.append({"match": {"actors": actor}})
+    if director:
+        must.append({"match": {"directors": director}})
+    if genre:
+        filters.append({"term": {"genres": genre}})
+    
+    rating_range = {}
+    if min_rating is not None:
+        rating_range["gte"] = min_rating
+    if max_rating is not None:
+        rating_range["lte"] = max_rating
+    if rating_range:
+        filters.append({"range": {"rating": rating_range}})
+    
+    # Construire la bool query...
+    query = {"bool": {"must": must, "filter": filters}}
+    return es.search(index=index, query=query)
+3.3 Recherche full-text dans le synopsis (5 pts)
+Fonction : search_plot(keywords)
+Effectuer une recherche dans le champ "plot" (synopsis) et mettre en évidence (highlight) les termes trouvés dans les résultats.
+Python — search.py (extrait)
+def search_plot(es, keywords, index="movies"):
+    """Recherche dans le synopsis avec mise en évidence des termes."""
+    query = {
+        # TODO: Construisez votre requête match sur le champ "plot"
+        # Indice: {"match": {"champ": "valeur"}}
+    }
+    highlight = {
+        # TODO: Configurez le highlight sur le champ "plot"
+        # Indice: {"fields": {"plot": {"fragment_size": 150, ...}}}
+    }
+    results = es.search(index=index, query=query, highlight=highlight)
+    
+    # TODO: Parcourez les résultats et affichez les highlights
+    # Les highlights sont dans hit['highlight']['plot']
+    pass
+3.4 Recherche floue (5 pts)
+Fonction : search_fuzzy(query, fuzziness=2)
+Implémenter une recherche tolérante aux fautes de frappe en utilisant le paramètre fuzziness de la match query.
+Exemples de recherches floues qui doivent fonctionner :
+"Sttar Warss" doit trouver "Star Wars"
+"Incepion" doit trouver "Inception"
+"Teh Godfahter" doit trouver "The Godfather"
+Python — search.py (extrait)
+def search_fuzzy(es, query, fuzziness=2, index="movies"):
+    """Recherche tolérante aux fautes de frappe."""
+    query = {
+        # TODO: Construisez une requête match avec fuzziness
+        # Indice: {"match": {"title": {"query": ..., "fuzziness": ...}}}
+    }
+    results = es.search(index=index, query=query)
+    
+    # TODO: Affichez les résultats trouvés malgré les fautes de frappe
+    pass
+3.5 Suggestions / Auto-complétion (5 pts)
+Fonction : suggest_titles(prefix)
+Implémenter un système d'auto-complétion basé sur un préfixe. Vous pouvez utiliser soit le completion suggester d'Elasticsearch (nécessite un champ de type "completion" dans le mapping), soit une prefix query simple.
+Python — search.py (extrait)
+# Option 1 : Prefix query (plus simple)
+def suggest_titles(es, prefix, index="movies"):
+    """Auto-complétion basée sur un préfixe."""
+    query = {
+        # TODO: Construisez une requête prefix sur le champ "title"
+        # Indice: {"prefix": {"title": {"value": prefix.lower()}}}
+    }
+    results = es.search(index=index, query=query)
+    
+    # TODO: Affichez les suggestions de titres
+    pass
+# Option 2 : Completion suggester (plus performant)
+# Nécessite un champ "suggest" de type "completion" dans le mapping
+Partie 4 : Agrégations et Statistiques (20 points)
+Implémenter les fonctions d'agrégation suivantes dans le fichier analytics.py. Ces fonctions exploitent les agrégations Elasticsearch pour produire des statistiques sur le dataset de films.
+4.1 Statistiques globales (5 pts)
+Calculer et afficher les statistiques globales du dataset :
+Nombre total de films dans l'index
+Note moyenne de l'ensemble des films
+Note minimale et note maximale
+Film le mieux noté (titre + note)
+Film le moins bien noté (titre + note)
+Python — analytics.py (extrait)
+def global_stats(es, index="movies"):
+    """Calcule les statistiques globales du dataset."""
+    aggs = {
+        # TODO: Définissez vos agrégations avg, min, max sur "rating"
+        # Indice: {"avg_rating": {"avg": {"field": "rating"}}, ...}
+    }
+    result = es.search(index=index, size=0, aggs=aggs)
+    
+    # TODO: Extraire et afficher les résultats depuis result["aggregations"]
+    # Le total de films est dans result["hits"]["total"]["value"]
+    pass
+4.2 Analyses par catégorie (10 pts)
+Implémenter les analyses suivantes en utilisant les terms et histogram aggregations :
+Top 10 des genres les plus représentés — terms aggregation sur genres
+Top 10 des réalisateurs les plus prolifiques — terms aggregation sur directors.keyword
+Top 10 des acteurs ayant joué dans le plus de films — terms aggregation sur actors.keyword
+Distribution des films par décennie — histogram aggregation sur year avec interval 10
+Python — analytics.py (extrait)
+def top_genres(es, index="movies", size=10):
+    """Top des genres les plus représentés."""
+    aggs = {
+        # TODO: Définissez une terms aggregation sur le champ "genres"
+        # Indice: {"genres": {"terms": {"field": "genres", "size": size}}}
+    }
+    result = es.search(index=index, size=0, aggs=aggs)
+    
+    # TODO: Parcourez result["aggregations"]["genres"]["buckets"]
+    # Chaque bucket contient "key" (le genre) et "doc_count" (nombre de films)
+    pass
+4.3 Analyses avancées (5 pts)
+Implémenter les analyses avancées suivantes (agrégations imbriquées) :
+Évolution de la note moyenne par année — date_histogram ou terms sur year + sub-aggregation avg sur rating
+Genre le mieux noté en moyenne — terms sur genres + sub-aggregation avg sur rating, trié par note décroissante
+Réalisateur avec la meilleure note moyenne (minimum 3 films) — terms sur directors.keyword + sub-aggregation avg sur rating + bucket_selector pour filtrer ceux ayant au moins 3 films
+Python — analytics.py (extrait)
+def best_rated_directors(es, min_films=3, index="movies"):
+    """Réalisateurs avec la meilleure note moyenne (min N films)."""
+    aggs = {
+        # TODO: Construisez une agrégation imbriquée :
+        # 1. terms aggregation sur "directors.keyword"
+        # 2. Sub-aggregation avg sur "rating"
+        # 3. bucket_selector pour filtrer min_films
+        # Indice: {"directors": {"terms": {...}, "aggs": {...}}}
+    }
+    result = es.search(index=index, size=0, aggs=aggs)
+    
+    # TODO: Trier les buckets par note moyenne décroissante
+    # et afficher le top 10
+    # Indice: sorted(buckets, key=lambda x: x["avg_rating"]["value"], reverse=True)
+    pass
+Partie 5 : Interface CLI (10 points)
+Développer une interface en ligne de commande (CLI) interactive dans main.py. Cette interface sera le point d'entrée principal de l'application et permettra d'accéder à toutes les fonctionnalités développées.
+Menu principal
+Le menu doit proposer les options suivantes :
+Affichage attendu
+╔══════════════════════════════════════════╗
+║         CinéSearch — Menu Principal      ║
+╠══════════════════════════════════════════╣
+║  1. Recherche par titre                  ║
+║  2. Recherche avancée (multi-critères)   ║
+║  3. Recherche dans le synopsis           ║
+║  4. Recherche floue (tolérance erreurs)  ║
+║  5. Auto-complétion de titre             ║
+║  6. Statistiques globales                ║
+║  7. Top réalisateurs / acteurs / genres  ║
+║  8. Quitter                              ║
+╚══════════════════════════════════════════╝
+Exigences
+Menu interactif en boucle (retour au menu après chaque action)
+Saisie des critères de recherche via input() avec des invites claires
+Affichage formaté et lisible des résultats (tableaux alignés, séparateurs visuels)
+Utilisation de couleurs dans le terminal si possible (module colorama ou codes ANSI)
+Gestion robuste des erreurs utilisateur (saisie invalide, ES non disponible, index inexistant...)
+Message d'accueil et message de fermeture propres
+Exemple d'affichage formaté des résultats de recherche :
+Affichage attendu (exemple)
+Résultats pour: "inception"
+─────────────────────────────────────────────────
+ #  │ Titre              │ Année │ Note │ Réalisateur
+────┼────────────────────┼───────┼──────┼──────────────────
+ 1  │ Inception          │ 2010  │ 8.8  │ Christopher Nolan
+ 2  │ Inception: The..   │ 2010  │ 7.2  │ ...
+─────────────────────────────────────────────────
+2 résultat(s) trouvé(s)
+Partie 6 : Visualisation Kibana (10 points)
+Créer un dashboard Kibana interactif permettant de visualiser les données du dataset de films. Le dashboard doit contenir au minimum les visualisations suivantes :
+Graphique en barres (Bar chart) : nombre de films par genre
+Line chart : évolution du nombre de films par année
+Pie chart : répartition des genres (en pourcentage)
+Tag cloud : mots les plus fréquents dans les synopsis (champ plot)
+Data table : top 10 des films les mieux notés (titre, note, année, réalisateur)
+Instructions pour Kibana
+1. Accéder à Kibana sur http://localhost:5601
+2. Créer un Data View (anciennement Index Pattern) pour l'index "movies"
+3. Aller dans Dashboard > Create new dashboard
+4. Ajouter les visualisations une par une via le bouton "Create visualization"
+5. Sauvegarder le dashboard sous le nom "CinéSearch — Tableau de bord"
+6. Exporter des captures d'écran du dashboard complet et de chaque visualisation
+Important : Les captures d'écran du dashboard Kibana doivent être incluses dans votre rendu final (dans un dossier screenshots/ ou dans le README). Elles font partie de l'évaluation.
+5. Barème Récapitulatif
+Partie
+Description
+Points
+Partie 1
+Infrastructure Docker + Mapping
+15
+Partie 2
+Indexation des données
+15
+Partie 3
+Fonctions de recherche
+30
+Partie 4
+Agrégations et statistiques
+20
+Partie 5
+Interface CLI
+10
+Partie 6
+Dashboard Kibana
+10
+Total
+100
+6. Bonus (jusqu'à 10 points supplémentaires)
+Les bonus suivants peuvent être réalisés pour obtenir des points supplémentaires. Ils ne sont pas obligatoires mais sont fortement encouragés pour les binômes/trinômes qui souhaitent approfondir le sujet.
+Points
+Bonus
+Description
++3 pts
+Interface web
+Remplacer le CLI par une interface web avec Flask ou Streamlit. L'interface doit proposer les mêmes fonctionnalités que le CLI.
++2 pts
+Second dataset
+Ajouter un second dataset (séries TV, livres, musique...) et implémenter un cross-index search pour chercher dans les deux index simultanément.
++2 pts
+Recommandations
+Implémenter un système de recommandation basique : "films similaires" basé sur les genres, acteurs ou réalisateurs en commun (more_like_this query).
++2 pts
+Tests unitaires
+Écrire des tests avec pytest couvrant les fonctions de recherche et d'agrégation. Minimum 10 tests.
++1 pt
+README.md
+README clair et complet avec instructions d'installation, d'exécution et captures d'écran.
+7. Modalités de Rendu
+Dépôt Git
+Le projet doit être rendu via un dépôt Git (GitHub ou GitLab) contenant :
+Le code source complet (tous les fichiers Python)
+Le fichier docker-compose.yml
+Le fichier requirements.txt listant toutes les dépendances
+Un fichier README.md avec les instructions pour lancer le projet
+Les captures d'écran du dashboard Kibana (dans un dossier screenshots/)
+Structure attendue du dépôt :
+Structure du dépôt Git
+cinesearch/
+├── docker-compose.yml
+├── requirements.txt
+├── README.md
+├── data/
+│   └── movies_cleaned_v2.json
+├── src/
+│   ├── config.py
+│   ├── indexer.py
+│   ├── search.py
+│   ├── analytics.py
+│   └── main.py
+└── screenshots/
+    ├── dashboard_full.png
+    ├── bar_chart_genres.png
+    └── ...
+Soutenance orale
+Chaque groupe présentera son projet lors d'une soutenance orale de 10 minutes :
+Démonstration (5 min) : montrer le fonctionnement de l'application (indexation, recherches, agrégations, dashboard Kibana)
+Questions (5 min) : l'enseignant posera des questions techniques sur les choix d'implémentation, le mapping, les requêtes, etc.
+Important : Chaque membre du groupe doit être capable de répondre aux questions sur n'importe quelle partie du projet. Une participation inégale sera pénalisée.
+Date limite
+Date limite de rendu : [à définir par l'enseignant]
+Soutenances : [dates à définir par l'enseignant]
+8. Critères d'Évaluation
+La notation prendra en compte les critères suivants :
+Critère
+Poids
+Description
+Fonctionnalité
+40%
+Le code fonctionne-t-il correctement ? Toutes les fonctionnalités demandées sont-elles implémentées ? Les résultats sont-ils cohérents ?
+Qualité du code
+25%
+Lisibilité, structure modulaire, nommage des variables, commentaires, gestion des erreurs, respect des conventions Python (PEP 8)
+Compréhension
+20%
+Capacité à expliquer les choix techniques lors de la soutenance : pourquoi tel type de mapping ? pourquoi telle requête ? comment fonctionne le bulk indexing ?
+Présentation
+15%
+Qualité du dashboard Kibana, clarté de la démonstration, qualité du README et de la documentation
+Pénalités
+Retard : -5 points par jour de retard
+Plagiat : 0/100 pour tous les groupes impliqués
+Code non fonctionnel (ne se lance pas) : -20 points maximum
+Pas de docker-compose.yml : -10 points
+Pas de captures d'écran Kibana : -5 points
+9. Conseils et Indices
+Méthodologie recommandée
+Suivez cet ordre pour avancer efficacement dans le projet :
+Étape 1 — Infrastructure : Commencez par le docker-compose.yml. Vérifiez que Elasticsearch et Kibana démarrent correctement et sont accessibles.
+Étape 2 — Mapping : Créez le mapping de l'index. Testez-le dans Kibana Dev Tools avant de le coder en Python.
+Étape 3 — Indexation : Développez le script d'indexation. Commencez par indexer quelques documents avant de passer au bulk complet.
+Étape 4 — Recherches : Implémentez les fonctions de recherche une par une. Testez chaque requête dans Kibana Dev Tools d'abord.
+Étape 5 — Agrégations : Ajoutez les fonctions de statistiques et d'analyse.
+Étape 6 — CLI : Construisez le menu interactif qui lie le tout.
+Étape 7 — Kibana : Créez le dashboard en dernier, une fois que toutes les données sont indexées.
+Astuces techniques
+Utilisez pprint pour débugger les réponses JSON volumineuses d'Elasticsearch
+Testez vos requêtes dans Kibana Dev Tools (Console) avant de les coder en Python — c'est beaucoup plus rapide pour itérer
+Pour le bulk indexing, traitez les documents par lots de 500 à 1000 pour éviter les timeouts
+Pensez à rafraîchir l'index après l'indexation : es.indices.refresh(index="movies")
+Utilisez try/except autour de vos appels Elasticsearch pour gérer les erreurs proprement
+Pour les agrégations imbriquées, construisez la requête étape par étape et testez à chaque niveau
+Le module tabulate peut être utile pour formater les résultats en tableau dans le CLI
+Ressources utiles
+Documentation Elasticsearch : https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html
+Python elasticsearch-py : https://elasticsearch-py.readthedocs.io/
+Kibana User Guide : https://www.elastic.co/guide/en/kibana/current/index.html
+Query DSL : https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
+Aggregations : https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations.html
+Annexe : Extrait du Dataset
+Voici un extrait du dataset movies_cleaned_v2.json pour illustrer la structure des données. Le dataset complet contient environ 4 999 films.
+Important : Le fichier JSON est au format bulk Elasticsearch. Les données de chaque film sont encapsulées dans un champ "fields". Votre script doit extraire ces données avant de les indexer.
+Film 1 — Don Jon (2013)
+JSON
+{
+  "directors": ["Joseph Gordon-Levitt"],
+  "release_date": "2013-01-18T00:00:00Z",
+  "rating": 7.4,
+  "genres": ["Comedy", "Drama"],
+  "image_url": "http://ia.media-imdb.com/images/M/MV5BMTQx...",
+  "plot": "A New Jersey guy dedicated to his family, friends, and church,
+          develops unrealistic expectations from watching porn and works
+          to find happiness and intimacy with his potential true love.",
+  "title": "Don Jon",
+  "rank": 1,
+  "running_time_secs": 5400,
+  "actors": ["Joseph Gordon-Levitt", "Scarlett Johansson", "Julianne Moore"],
+  "year": 2013
+}
+Film 2 — Rush (2013)
+JSON
+{
+  "directors": ["Ron Howard"],
+  "release_date": "2013-09-02T00:00:00Z",
+  "rating": 8.3,
+  "genres": ["Action", "Biography", "Drama", "Sport"],
+  "image_url": "http://ia.media-imdb.com/images/M/MV5BM...",
+  "plot": "A re-creation of the merciless 1970s rivalry between
+          Formula One rivals James Hunt and Niki Lauda.",
+  "title": "Rush",
+  "rank": 2,
+  "running_time_secs": 7380,
+  "actors": ["Daniel Bruhl", "Chris Hemsworth", "Olivia Wilde"],
+  "year": 2013
+}
+Film 3 — Nebraska (2013)
+JSON
+{
+  "directors": ["Alexander Payne"],
+  "release_date": "2013-05-23T00:00:00Z",
+  "rating": 7.5,
+  "genres": ["Adventure", "Drama"],
+  "image_url": "http://ia.media-imdb.com/images/M/MV5BMTg0...",
+  "plot": "An aging, booze-addled father makes the trip from Montana
+          to Nebraska with his estranged son in order to claim a
+          million dollar Mega Sweepstakes Marketing prize.",
+  "title": "Nebraska",
+  "rank": 201,
+  "running_time_secs": 6900,
+  "actors": ["Bruce Dern", "Will Forte", "June Squibb"],
+  "year": 2013
+}
+Structure des champs
+Description de chaque champ du dataset :
+Champ
+Type
+Description
+title
+string
+Titre du film
+directors
+array[string]
+Liste des réalisateurs
+actors
+array[string]
+Liste des acteurs principaux (max 3)
+genres
+array[string]
+Liste des genres du film
+year
+integer
+Année de sortie
+rating
+float
+Note du film (échelle 1-10, source IMDb)
+rank
+integer
+Classement dans le dataset
+release_date
+string (ISO 8601)
+Date de sortie complète
+plot
+string
+Synopsis / résumé du film
+running_time_secs
+integer
+Durée du film en secondes
+image_url
+string
+URL de l'affiche du film
+— Fin du sujet —
+Bon courage et bon code !

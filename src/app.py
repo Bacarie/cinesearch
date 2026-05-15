@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 from elasticsearch import Elasticsearch
 from search import (
     search_by_title, search_advanced, search_plot, search_fuzzy, 
@@ -39,10 +40,18 @@ st.markdown("*Explorez une base de données de 5000+ films avec Elasticsearch*")
 # Vérification de la connexion
 try:
     es.info()
-    st.success("✅ Connecté à Elasticsearch")
+    # On a retiré le st.success pour plus de discrétion
 except:
     st.error("❌ Erreur de connexion à Elasticsearch. Vérifiez que le service est démarré.")
     st.stop()
+
+def clear_search():
+    st.session_state.last_results = None
+
+if "last_results" not in st.session_state:
+    st.session_state.last_results = None
+if "last_source_name" not in st.session_state:
+    st.session_state.last_source_name = "résultats"
 
 # Menu principal
 menu = st.sidebar.radio("📌 Navigation", [
@@ -51,15 +60,29 @@ menu = st.sidebar.radio("📌 Navigation", [
     "🎯 Recherche Spécialisée",
     "⭐ Statistiques Globales",
     "🏆 Classements & Top 10"
-])
+], on_change=clear_search)
+
+def format_french_date(date_str):
+    if not date_str or date_str == 'N/A': return 'N/A'
+    try:
+        dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        mois = ["", "janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+        return f"{dt.day} {mois[dt.month]} {dt.year}"
+    except:
+        return date_str
 
 def display_movie_card(movie, hit_id, idx=0):
     """Affiche une fiche film avec détails."""
     col1, col2 = st.columns([1, 2])
     
     placeholder = "https://placehold.co/400x600/1a1a2e/ffffff?text=Image+Indisponible"
-    img_url = movie.get("image_url", "") or placeholder
-    
+    img_url = movie.get("image_url", "")
+    if img_url and "ia.media-imdb.com" in img_url:
+        img_url = img_url.replace("http://ia.media-imdb.com", "https://m.media-amazon.com")
+        img_url = img_url.replace("ia.media-imdb.com", "m.media-amazon.com")
+    if not img_url:
+        img_url = placeholder
+        
     with col1:
         try:
             st.image(img_url, width=150)
@@ -89,10 +112,10 @@ def display_movie_card(movie, hit_id, idx=0):
         # Expander pour plus de détails
         with st.expander("📖 Voir plus"):
             st.write(f"**Synopsis:** {movie.get('plot')}")
-            st.write(f"**Date de sortie:** {movie.get('release_date', 'N/A')}")
+            st.write(f"**Date de sortie:** {format_french_date(movie.get('release_date'))}")
             
             # Bouton recommandations
-            if st.button(f"💡 Films similaires pour {movie.get('title')}", key=f"reco_{hit_id}_{idx}"):
+            if st.toggle(f"💡 Afficher les films similaires", key=f"reco_{hit_id}_{idx}"):
                 try:
                     recos = recommend_similar_movies(es, hit_id)
                     if recos["hits"]["hits"]:
@@ -141,8 +164,11 @@ if menu == "🔍 Recherche Globale":
     
     if search_button and search_query:
         with st.spinner("⏳ Recherche en cours..."):
-            results = global_search(es, search_query)
-            display_results(results, "votre recherche")
+            st.session_state.last_results = global_search(es, search_query)
+            st.session_state.last_source_name = "votre recherche"
+            
+    if st.session_state.last_results is not None:
+        display_results(st.session_state.last_results, st.session_state.last_source_name)
 
 # PAGE 2: Recherche Avancée
 elif menu == "📋 Recherche Avancée":
@@ -180,7 +206,7 @@ elif menu == "📋 Recherche Avancée":
     if search_button:
         with st.spinner("⏳ Application des filtres..."):
             genre_filter = None if genre == "Tous" else genre
-            results = search_advanced(
+            st.session_state.last_results = search_advanced(
                 es,
                 title=title or None,
                 actor=actor or None,
@@ -191,7 +217,10 @@ elif menu == "📋 Recherche Avancée":
                 year_from=year_from,
                 year_to=year_to
             )
-            display_results(results, "vos critères")
+            st.session_state.last_source_name = "vos critères"
+            
+    if st.session_state.last_results is not None:
+        display_results(st.session_state.last_results, st.session_state.last_source_name)
 
 # PAGE 3: Recherche Spécialisée
 elif menu == "🎯 Recherche Spécialisée":
@@ -214,8 +243,11 @@ elif menu == "🎯 Recherche Spécialisée":
         if st.button("🔍 Chercher cette phrase"):
             if quote:
                 with st.spinner("⏳ Recherche en cours..."):
-                    results = search_exact_quote(es, quote)
-                    display_results(results, "cette phrase")
+                    st.session_state.last_results = search_exact_quote(es, quote)
+                    st.session_state.last_source_name = "cette phrase"
+        
+        if st.session_state.last_results is not None:
+            display_results(st.session_state.last_results, st.session_state.last_source_name)
     
     with search_type[1]:  # Durée
         st.subheader("⏱️ Recherche par Durée")
@@ -227,12 +259,15 @@ elif menu == "🎯 Recherche Spécialisée":
         
         if st.button("🔍 Chercher par durée"):
             with st.spinner("⏳ Recherche en cours..."):
-                results = search_by_duration(
+                st.session_state.last_results = search_by_duration(
                     es,
                     min_duration_secs=min_duration * 60,
                     max_duration_secs=max_duration * 60
                 )
-                display_results(results, "cette plage horaire")
+                st.session_state.last_source_name = "cette plage horaire"
+                
+        if st.session_state.last_results is not None:
+            display_results(st.session_state.last_results, st.session_state.last_source_name)
     
     with search_type[2]:  # Période
         st.subheader("📅 Recherche par Période")
@@ -245,10 +280,13 @@ elif menu == "🎯 Recherche Spécialisée":
         if st.button("🔍 Chercher par période"):
             if year_from <= year_to:
                 with st.spinner("⏳ Recherche en cours..."):
-                    results = search_by_year_range(es, year_from, year_to)
-                    display_results(results, f"la période {year_from}-{year_to}")
+                    st.session_state.last_results = search_by_year_range(es, year_from, year_to)
+                    st.session_state.last_source_name = f"la période {year_from}-{year_to}"
             else:
                 st.error("L'année de fin doit être après l'année de début.")
+                
+        if st.session_state.last_results is not None:
+            display_results(st.session_state.last_results, st.session_state.last_source_name)
     
     with search_type[3]:  # Meilleurs films
         st.subheader("🎬 Top Films par Critères")
@@ -265,10 +303,13 @@ elif menu == "🎯 Recherche Spécialisée":
         if st.button("🔍 Voir top films"):
             with st.spinner("⏳ Recherche en cours..."):
                 genre_filter = None if genre == "Tous" else genre
-                results = search_best_movies_by_criteria(
+                st.session_state.last_results = search_best_movies_by_criteria(
                     es, genre=genre_filter, min_rating=min_rating, limit=20
                 )
-                display_results(results, f"{genre} avec note ≥ {min_rating}")
+                st.session_state.last_source_name = f"{genre} avec note ≥ {min_rating}"
+                
+        if st.session_state.last_results is not None:
+            display_results(st.session_state.last_results, st.session_state.last_source_name)
     
     with search_type[4]:  # Acteurs & Réalisateurs
         st.subheader("👥 Recherche par Acteurs & Réalisateurs")
@@ -281,10 +322,13 @@ elif menu == "🎯 Recherche Spécialisée":
         if st.button("🔍 Chercher films"):
             if actors or directors:
                 with st.spinner("⏳ Recherche en cours..."):
-                    results = search_by_actors_and_directors(
+                    st.session_state.last_results = search_by_actors_and_directors(
                         es, actors=actors or None, directors=directors or None
                     )
-                    display_results(results, "vos critères")
+                    st.session_state.last_source_name = "vos critères"
+                    
+        if st.session_state.last_results is not None:
+            display_results(st.session_state.last_results, st.session_state.last_source_name)
 
 # PAGE 4: Statistiques Globales
 elif menu == "⭐ Statistiques Globales":
@@ -342,21 +386,21 @@ elif menu == "🏆 Classements & Top 10":
                 
                 # Top genres
                 st.subheader("🎭 Top 10 Genres")
-                genres_df = pd.DataFrame(categories["top_genres"])
-                st.dataframe(genres_df, width='stretch')
+                genres_df = pd.DataFrame(categories["top_genres"]).sort_values("count", ascending=True)
+                st.dataframe(genres_df.sort_values("count", ascending=False), width='stretch')
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.bar_chart(genres_df.set_index("name")["count"])
+                    st.bar_chart(genres_df.set_index("name")["count"], horizontal=True)
                 with col2:
                     fig = px.pie(genres_df, values='count', names='name', title='Distribution des Genres')
                     st.plotly_chart(fig, width='stretch')
                 
                 # Top réalisateurs
                 st.subheader("🎥 Top 10 Réalisateurs")
-                directors_df = pd.DataFrame(categories["top_directors"][:10])
-                st.dataframe(directors_df, width='stretch')
-                st.bar_chart(directors_df.set_index("name")["count"])
+                directors_df = pd.DataFrame(categories["top_directors"][:10]).sort_values("count", ascending=True)
+                st.dataframe(directors_df.sort_values("count", ascending=False), width='stretch')
+                st.bar_chart(directors_df.set_index("name")["count"], horizontal=True)
                 
                 # Films par décennie
                 st.subheader("📅 Films par Décennie")
@@ -368,41 +412,41 @@ elif menu == "🏆 Classements & Top 10":
         if st.button("Charger les top acteurs"):
             with st.spinner("⏳ Calcul en cours..."):
                 actors_data = top_actors(es, n=10)
-                actors_df = pd.DataFrame(actors_data)
+                actors_df = pd.DataFrame(actors_data).sort_values("film_count", ascending=True)
                 
-                st.dataframe(actors_df, width='stretch')
+                st.dataframe(actors_df.sort_values("film_count", ascending=False), width='stretch')
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.bar_chart(actors_df.set_index("name")["film_count"])
+                    st.bar_chart(actors_df.set_index("name")["film_count"], horizontal=True)
                 with col2:
-                    st.scatter_chart(actors_df.rename(columns={"film_count": "Nombre de films", "avg_rating": "Note moyenne"})[["name", "Nombre de films", "Note moyenne"]].set_index("name"))
+                    st.scatter_chart(actors_df, x="avg_rating", y="name", color="avg_rating", size="film_count")
     
     with tabs[2]:  # Genres
         st.subheader("🎭 Genres Mieux Notés")
         if st.button("Charger les meilleurs genres"):
             with st.spinner("⏳ Calcul en cours..."):
                 genres_data = best_rated_genres(es, n=10)
-                genres_df = pd.DataFrame(genres_data)
+                genres_df = pd.DataFrame(genres_data).sort_values("avg_rating", ascending=True)
                 
-                st.dataframe(genres_df, width='stretch')
+                st.dataframe(genres_df.sort_values("avg_rating", ascending=False), width='stretch')
                 
-                st.bar_chart(genres_df.set_index("name")["avg_rating"])
+                st.bar_chart(genres_df.set_index("name")["avg_rating"], horizontal=True)
     
     with tabs[3]:  # Réalisateurs
         st.subheader("🎥 Top Réalisateurs (Note Moyenne)")
         if st.button("Charger les top réalisateurs"):
             with st.spinner("⏳ Calcul en cours..."):
                 directors_data = advanced_analytics(es, min_films=3)
-                directors_df = pd.DataFrame(directors_data)
+                directors_df = pd.DataFrame(directors_data).sort_values("avg_rating", ascending=True)
                 
-                st.dataframe(directors_df, width='stretch')
+                st.dataframe(directors_df.sort_values("avg_rating", ascending=False), width='stretch')
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.bar_chart(directors_df.set_index("name")["avg_rating"])
+                    st.bar_chart(directors_df.set_index("name")["avg_rating"], horizontal=True)
                 with col2:
-                    st.scatter_chart(directors_df.rename(columns={"film_count": "Nombre de films", "avg_rating": "Note moyenne"})[["name", "Nombre de films", "Note moyenne"]].set_index("name"))
+                    st.scatter_chart(directors_df, x="film_count", y="name", color="avg_rating", size="film_count")
 
 # Footer
 st.divider()

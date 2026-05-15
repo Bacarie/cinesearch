@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CinéSearch | React-like Interface</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Fond animé (Glassmorphism) -->
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+
+        <nav class="navbar">
+            <div class="logo">🎬 CinéSearch</div>
+            <div class="nav-links">
+                <a href="#" class="active" data-view="search">Recherche</a>
+                <a href="#" data-view="stats">Statistiques</a>
+            </div>
+        </nav>
+
+        <main class="container">
+            <!-- View: Recherche -->
+            <section id="view-search" class="view active">
+                <div class="hero">
+                    <h1>Trouvez votre prochain <span class="highlight">coup de cœur</span>.</h1>
+                    <p>Recherche ultra-rapide sur plus de 5000 films avec Elasticsearch.</p>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Titre, acteur, réalisateur, résumé...">
+                    <button id="searchBtn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+
+                <div class="loading" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <p>Recherche en cours...</p>
+                </div>
+
+                <div class="results-header" id="resultsHeader">
+                    <!-- Rempli en JS -->
+                </div>
+
+                <div class="grid" id="resultsGrid">
+                    <!-- Films injectés ici par JS -->
+                </div>
+            </section>
+
+            <!-- View: Stats -->
+            <section id="view-stats" class="view">
+                <div class="hero">
+                    <h1>Statistiques du <span class="highlight">Dataset</span>.</h1>
+                </div>
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats injectées ici -->
+                </div>
+            </section>
+
+            <!-- View: Movie Detail -->
+            <section id="view-movie" class="view">
+                <button class="back-btn" onclick="goBack()">← Retour</button>
+                <div class="movie-detail-container" id="movieDetailContainer">
+                    <!-- Injecté par JS -->
+                </div>
+                <div class="similar-section">
+                    <h2 style="margin-bottom: 1.5rem; border-top: 1px solid var(--card-border); padding-top: 1.5rem;">Films similaires</h2>
+                    <div class="grid" id="movieSimilarGrid">
+                        <!-- Injecté par JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Person (Actor/Director) -->
+            <section id="view-person" class="view">
+                <button class="back-btn" onclick="goBack()">← Retour</button>
+                <div class="hero">
+                    <h1 id="personTitle">Chargement...</h1>
+                    <p id="personSubtitle" class="highlight">Meilleurs films</p>
+                </div>
+                <div class="grid" id="personMoviesGrid">
+                    <!-- Injecté par JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modale pour les films similaires -->
+    <div class="modal-overlay" id="similarModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Films similaires</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body grid" id="similarGrid">
+                <!-- Films similaires injectés ici -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

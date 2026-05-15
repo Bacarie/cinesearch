@@ -39,3 +39,27 @@ def index_movies(es_client, filepath, index_name="movies"):
         print(f"Erreur d'indexation : {e}")
         
     print(f"Temps total d'exécution : {time.time() - start_time:.2f} s")
+
+def verify_indexation(es_client, index_name="movies"):
+    print("\n--- Vérification de l'indexation ---")
+    
+    # 1. Forcer le rafraîchissement de l'index
+    es_client.indices.refresh(index=index_name)
+    
+    # 2. Vérifier le nombre de documents
+    count = es_client.count(index=index_name)["count"]
+    print(f"✅ Nombre de documents indexés : {count}")
+    
+    # 3. Afficher un échantillon de 3 documents
+    print("\nÉchantillon de 3 documents :")
+    result = es_client.search(index=index_name, size=3)
+    for hit in result["hits"]["hits"]:
+        source = hit["_source"]
+        print(f" - {source.get('title')} ({source.get('year')}) - Note: {source.get('rating')}")
+        
+    # 4. Vérifier que le mapping appliqué est correct
+    print("\nAperçu du mapping (champs 'title' et 'genres') :")
+    mapping = es_client.indices.get_mapping(index=index_name)
+    properties = mapping[index_name]["mappings"]["properties"]
+    print(f" - Type du champ 'title' : {properties.get('title', {}).get('type')}")
+    print(f" - Type du champ 'genres' : {properties.get('genres', {}).get('type')}")
