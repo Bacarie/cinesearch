@@ -71,7 +71,7 @@ def format_french_date(date_str):
     except:
         return date_str
 
-def display_movie_card(movie, hit_id, idx=0):
+def display_movie_card(movie, hit_id, idx=0, prefix=""):
     """Affiche une fiche film avec détails."""
     col1, col2 = st.columns([1, 2])
     
@@ -85,9 +85,9 @@ def display_movie_card(movie, hit_id, idx=0):
         
     with col1:
         try:
-            st.image(img_url, width=150)
+            st.image(img_url, use_container_width=True)
         except:
-            st.image(placeholder, width=150)
+            st.image(placeholder, use_container_width=True)
     
     with col2:
         st.subheader(f"{movie.get('title')} ({movie.get('year')})")
@@ -115,7 +115,7 @@ def display_movie_card(movie, hit_id, idx=0):
             st.write(f"**Date de sortie:** {format_french_date(movie.get('release_date'))}")
             
             # Bouton recommandations
-            if st.toggle(f"💡 Afficher les films similaires", key=f"reco_{hit_id}_{idx}"):
+            if st.toggle(f"💡 Afficher les films similaires", key=f"reco_{prefix}_{hit_id}_{idx}"):
                 try:
                     recos = recommend_similar_movies(es, hit_id)
                     if recos["hits"]["hits"]:
@@ -128,7 +128,7 @@ def display_movie_card(movie, hit_id, idx=0):
                 except Exception as e:
                     st.error(f"Erreur: {e}")
 
-def display_results(results, source_name="Résultats", show_count=True):
+def display_results(results, source_name="Résultats", show_count=True, prefix=""):
     """Affiche les résultats de recherche de manière formatée."""
     if not results or not results["hits"]["hits"]:
         st.warning(f"❌ Aucun film trouvé pour {source_name}.")
@@ -144,7 +144,7 @@ def display_results(results, source_name="Résultats", show_count=True):
     for idx, hit in enumerate(hits):
         with st.container():
             st.divider()
-            display_movie_card(hit["_source"], hit["_id"], idx)
+            display_movie_card(hit["_source"], hit["_id"], idx, prefix=prefix)
 
 # PAGE 1: Recherche Globale
 if menu == "🔍 Recherche Globale":
@@ -168,7 +168,7 @@ if menu == "🔍 Recherche Globale":
             st.session_state.last_source_name = "votre recherche"
             
     if st.session_state.last_results is not None:
-        display_results(st.session_state.last_results, st.session_state.last_source_name)
+        display_results(st.session_state.last_results, st.session_state.last_source_name, prefix="global")
 
 # PAGE 2: Recherche Avancée
 elif menu == "📋 Recherche Avancée":
@@ -220,7 +220,7 @@ elif menu == "📋 Recherche Avancée":
             st.session_state.last_source_name = "vos critères"
             
     if st.session_state.last_results is not None:
-        display_results(st.session_state.last_results, st.session_state.last_source_name)
+        display_results(st.session_state.last_results, st.session_state.last_source_name, prefix="adv")
 
 # PAGE 3: Recherche Spécialisée
 elif menu == "🎯 Recherche Spécialisée":
@@ -247,7 +247,7 @@ elif menu == "🎯 Recherche Spécialisée":
                     st.session_state.last_source_name = "cette phrase"
         
         if st.session_state.last_results is not None:
-            display_results(st.session_state.last_results, st.session_state.last_source_name)
+            display_results(st.session_state.last_results, st.session_state.last_source_name, prefix="intrigue")
     
     with search_type[1]:  # Durée
         st.subheader("⏱️ Recherche par Durée")
@@ -267,7 +267,7 @@ elif menu == "🎯 Recherche Spécialisée":
                 st.session_state.last_source_name = "cette plage horaire"
                 
         if st.session_state.last_results is not None:
-            display_results(st.session_state.last_results, st.session_state.last_source_name)
+            display_results(st.session_state.last_results, st.session_state.last_source_name, prefix="floue")
     
     with search_type[2]:  # Période
         st.subheader("📅 Recherche par Période")
@@ -286,7 +286,7 @@ elif menu == "🎯 Recherche Spécialisée":
                 st.error("L'année de fin doit être après l'année de début.")
                 
         if st.session_state.last_results is not None:
-            display_results(st.session_state.last_results, st.session_state.last_source_name)
+            display_results(st.session_state.last_results, st.session_state.last_source_name, prefix="crit")
     
     with search_type[3]:  # Meilleurs films
         st.subheader("🎬 Top Films par Critères")
@@ -309,7 +309,7 @@ elif menu == "🎯 Recherche Spécialisée":
                 st.session_state.last_source_name = f"{genre} avec note ≥ {min_rating}"
                 
         if st.session_state.last_results is not None:
-            display_results(st.session_state.last_results, st.session_state.last_source_name)
+            display_results(st.session_state.last_results, st.session_state.last_source_name, prefix="top")
     
     with search_type[4]:  # Acteurs & Réalisateurs
         st.subheader("👥 Recherche par Acteurs & Réalisateurs")
@@ -328,7 +328,7 @@ elif menu == "🎯 Recherche Spécialisée":
                     st.session_state.last_source_name = "vos critères"
                     
         if st.session_state.last_results is not None:
-            display_results(st.session_state.last_results, st.session_state.last_source_name)
+            display_results(st.session_state.last_results, st.session_state.last_source_name, prefix="act")
 
 # PAGE 4: Statistiques Globales
 elif menu == "⭐ Statistiques Globales":

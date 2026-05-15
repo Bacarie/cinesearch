@@ -141,3 +141,47 @@ cinesearch/
 ├── requirements.txt        # Dépendances du projet
 └── README.md               # Ce fichier
 ```
+
+---
+
+## 📸 Captures d'écran
+
+Voici un aperçu des différentes interfaces réalisées pour ce projet.
+
+### 1. Interface Streamlit
+Le tableau de bord Streamlit utilise la puissance d'Elasticsearch à travers différents onglets et requêtes complexes :
+
+*   **Recherche Globale (`multi_match`)** : Cherche simultanément dans les titres, synopsis, acteurs et réalisateurs avec des pondérations différentes.
+
+![Recherche globale](screenshots/interface_streamlit/streamlit_search_1.png)
+
+*   **Recherche sur l'Intrigue (`match` avec `highlight`)** : Effectue une recherche Full-Text dans le résumé du film et surligne les mots correspondants.
+
+![Recherche intrigue](screenshots/interface_streamlit/streamlit_search_4.png)
+
+*   **Recherche Tolérante (`match` avec `fuzziness`)** : Permet de trouver des films même avec des fautes de frappe (ex: taper "Batmna" renvoie "Batman").
+*   **Recherche Avancée (`bool query`)** : Combine des filtres d'exclusion et d'inclusion stricts (`filter` pour la durée ou les années, `must` pour le texte).
+
+![Recherche avancée](screenshots/interface_streamlit/streamlit_search_2.png)
+
+*   **Recommandations (`more_like_this`)** : Un bouton "Films similaires" analyse l'ambiance et les mots-clés du synopsis pour suggérer des œuvres proches.
+
+![Recommandations](screenshots/interface_streamlit/streamlit_search_5.png)
+
+*   **Statistiques Globales (Agrégations)** : Un onglet dédié permet de visualiser les indicateurs clés du dataset grâce aux agrégations d'Elasticsearch (`avg`, `min`, `max`, `terms`, `histogram`). On y retrouve la note moyenne, la durée moyenne, la répartition par décennie ou encore les genres les plus populaires sous forme de graphiques Plotly interactifs.
+
+![Statistiques Streamlit](screenshots/interface_streamlit/streamlit_stats_1.png)
+
+### 2. Application Web (React-like / Vanilla JS)
+Une single page application entièrement customisée (Dark Mode, Glassmorphism) communiquant de manière asynchrone avec le backend FastAPI.
+
+*   **Recherche Rapide** : Moteur de recherche global ultra-réactif sans rechargement de page.
+*   **Pages Détaillées** : Fiches de films immersives avec affiches grand format, métadonnées complètes et films similaires.
+*   **Navigation Croisée** : Tags cliquables permettant d'explorer dynamiquement toute la filmographie des acteurs et réalisateurs.
+*   **Indicateurs Statistiques** : Un panneau de statistiques affiche instantanément les métriques calculées en direct par Elasticsearch (Total de films, Moyennes globales, Films extrêmes).
+
+![Vue Web App](screenshots/interface_react/react_1.png)
+
+### 3. Tableau de bord Kibana
+Exploration visuelle des données et des KPI principaux du dataset via des agrégations avancées (Histogrammes, Treemap, Moyennes).
+![Dashboard Kibana](screenshots/dashboard/dashboard_1.png)
