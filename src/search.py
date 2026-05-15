@@ -209,8 +209,116 @@ def search_exact_quote(es_client, quote, index_name="movies"):
         }
     }
     
-    results = es_client.search(index=index_name, query=query, size=5)
+    results = es_client.search(index=index_name, query=query, size=10)
     for hit in results["hits"]["hits"]:
         print(f"🎬 {hit['_source']['title']}")
         
+    return results
+
+
+def search_by_duration(es_client, min_duration_secs=None, max_duration_secs=None, index_name="movies"):
+    """Recherche les films par durée (en secondes)."""
+    print(f"\n--- Recherche par durée (min: {min_duration_secs}s, max: {max_duration_secs}s) ---")
+    
+    duration_range = {}
+    if min_duration_secs is not None:
+        duration_range["gte"] = min_duration_secs
+    if max_duration_secs is not None:
+        duration_range["lte"] = max_duration_secs
+    
+    query = {
+        "range": {
+            "running_time_secs": duration_range
+        }
+    }
+    
+    results = es_client.search(index=index_name, query=query, size=20, sort=[{"running_time_secs": "asc"}])
+    
+    for hit in results["hits"]["hits"]:
+        movie = hit["_source"]
+        duration_min = movie.get("running_time_secs", 0) // 60
+        print(f"{movie.get('title')} ({movie.get('year')}) - {duration_min}min - {movie.get('rating')}/10")
+    
+    return results
+
+
+def search_by_year_range(es_client, year_from, year_to, index_name="movies"):
+    """Recherche les films d'une période spécifique avec statistiques."""
+    print(f"\n--- Recherche films entre {year_from} et {year_to} ---")
+    
+    query = {
+        "range": {
+            "year": {"gte": year_from, "lte": year_to}
+        }
+    }
+    
+    results = es_client.search(index=index_name, query=query, size=100, sort=[{"rating": "desc"}])
+    
+    for hit in results["hits"]["hits"]:
+        movie = hit["_source"]
+        print(f"{movie.get('title')} ({movie.get('year')}) - {movie.get('rating')}/10 - {', '.join(movie.get('genres', []))}")
+    
+    return results
+
+
+def search_by_actors_and_directors(es_client, actors=None, directors=None, index_name="movies"):
+    """Recherche films par combinaison d'acteurs ET réalisateurs."""
+    print(f"\n--- Recherche par acteurs et réalisateurs ---")
+    
+    must_clauses = []
+    
+    if actors:
+        must_clauses.append({"match": {"actors": actors}})
+    if directors:
+        must_clauses.append({"match": {"directors": directors}})
+    
+    query = {"bool": {"must": must_clauses}} if must_clauses else {"match_all": {}}
+    
+    results = es_client.search(index=index_name, query=query, size=20, sort=[{"rating": "desc"}])
+    
+    for hit in results["hits"]["hits"]:
+        movie = hit["_source"]
+        print(f"{movie.get('title')} ({movie.get('year')}) - Acteurs: {', '.join(movie.get('actors', [])[:2])}")
+    
+    return results
+
+
+def search_best_movies_by_criteria(es_client, genre=None, min_rating=7.0, limit=10, index_name="movies"):
+    """Recherche les meilleurs films selon les critères (genre + note minimale)."""
+    print(f"\n--- Top films (genre={genre}, min_rating={min_rating}) ---")
+    
+    filters = []
+    if genre:
+        filters.append({"term": {"genres": genre}})
+    filters.append({"range": {"rating": {"gte": min_rating}}})
+    
+    query = {"bool": {"filter": filters}} if filters else {"match_all": {}}
+    
+    results = es_client.search(index=index_name, query=query, size=limit, sort=[{"rating": "desc"}])
+    
+    for hit in results["hits"]["hits"]:
+        movie = hit["_source"]
+        print(f"⭐ {movie.get('title')} ({movie.get('year')}) - {movie.get('rating')}/10")
+    
+    return results
+
+
+def search_with_facets(es_client, query_text=None, index_name="movies"):
+    """Recherche globale avec facettes (agrégations intégrées)."""
+    print(f"\n--- Recherche avec facettes : '{query_text}' ---")
+    
+    query = {"multi_match": {
+        "query": query_text or "*",
+        "fields": ["title^3", "directors^2", "actors", "plot"]
+    }} if query_text else {"match_all": {}}
+    
+    aggs = {
+        "top_genres": {"terms": {"field": "genres", "size": 10}},
+        "rating_distribution": {
+            "histogram": {"field": "rating", "interval": 1, "min_doc_count": 1}
+        }
+    }
+    
+    results = es_client.search(index=index_name, query=query, aggs=aggs, size=10)
+    
     return results
